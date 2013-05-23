@@ -20,11 +20,11 @@
     ((<= n 3) #t)
     ((equal? 0 (modulo n 2)) #f)
     (else (let loop ((i 3)
-               (s (sqrt n)))
-       (cond
-         ((> i s) #t)
-         ((equal? 0 (modulo n i)) #f)
-         (else (loop (+ i 2) s)))))
+                     (s (sqrt n)))
+            (cond
+              ((> i s) #t)
+              ((equal? 0 (modulo n i)) #f)
+              (else (loop (+ i 2) s)))))
     ))
 
 (define (map-interval f min max)
@@ -80,7 +80,7 @@
         (if (empty? (cdr list)) ;There's no element left
             res
             (loop (operator res (car (cdr list))) (cdr list))))
-  ))
+      ))
 
 ;;;; Test Manipulation de données
 
@@ -100,10 +100,10 @@
   (syntax-rules ()
     ((or) #f)
     ((or a b ...)
-        (let ((result a))
-            (if result
-                result
-                (or b ...))))
+     (let ((result a))
+       (if result
+           result
+           (or b ...))))
     ))
 
 (define-syntax and 
@@ -111,45 +111,80 @@
     ((and) #t)
     ((and a) a)
     ((and a b ...)
-       (if a
-           (and b ...)
-           #f))
+     (if a
+         (and b ...)
+         #f))
     ))
 
 (define-syntax while
   (syntax-rules ()
     ((while cond body ...) 
-       (let loop ()
-         (when cond
-             (begin body ... (loop)))
-         ))))
-       
+     (let loop ()
+       (when cond
+         (begin body ... (loop)))
+       ))))
+
 ;;;; Test mise en jambe
 
- (test (let ((i 0) (c 0)) (while (< i 5) (set! c (+ c i)) (set! i (+ i 1))) c) 10)
- (test
+(test (let ((i 0) (c 0)) (while (< i 5) (set! c (+ c i)) (set! i (+ i 1))) c) 10)
+(test
  (let ((x 1))
    (+ (or (begin (set! x (+ 1 x)) x)) x) 4)
  4)
 (test (and 1 2 3) 3)
- 
- (define-syntax define-trace
-   (syntax-rules ()
-     ((define-trace (f . args) body ...)
-      (define (f . args)
-        (begin (display f) (newline) (begin0 body ... (flush-output) (newline)))
-        ; I think that it's not possible to print another time after after returning the value of body
-        )
-      )))
- 
- ;; With this tracing, we can have the trace at the end of the procedure, but the procedure won't return the value we expected
- (define-syntax define-trace2
-   (syntax-rules ()
-     ((define-trace2 (f . args) body ...)
-      (define (f . args)
+
+(define-syntax define-trace
+  (syntax-rules ()
+    ((define-trace (f . args) body ...)
+     (define (f . args)
+       (begin (display f) (newline) (begin0 body ... (flush-output) (newline)))
+       ; I think that it's not possible to print another time after after returning the value of body
+       )
+     )))
+
+;; With this tracing, we can have the trace at the end of the procedure, but the procedure won't return the value we expected
+(define-syntax define-trace2
+  (syntax-rules ()
+    ((define-trace2 (f . args) body ...)
+     (define (f . args)
        (let ((result body ...))
          (display f) (newline)
          (display result)
          (newline) (display f))
        )
-      )))
+     )))
+
+
+;; Programmation par contrat
+;; inv comme macro à l'intérieur de contract
+(define-syntax (contract stx)
+  (syntax-case stx ()
+    ((_ body ...)
+     (let ((pre (datum->syntax stx 'pre))
+           (post (datum->syntax stx 'post))
+           (inv (datum->syntax stx 'inv)))
+       (define (check expr)
+         (lambda () 
+           (when (not expr)
+             (error "error..."))))
+       (define-syntax pre
+         (syntax-rules (pre)
+           ((pre cond)
+            (check cond))))
+       (define-syntax post
+         (syntax-rules (post)
+           ((post cond)
+            ; add post conds to a list
+            (display "post conditions")
+            )))
+       (define-syntax inv
+         (syntax-rules (inv)
+           ((inv cond)
+            (check cond)
+            ; add post conds to a list
+            )))
+       #`(body
+          ...)))))
+
+(contract (pre #f) 
+         (post #t) 1)
