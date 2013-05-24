@@ -160,31 +160,31 @@
 (define-syntax (contract stx)
   (syntax-case stx ()
     ((_ body ...)
-     (let ((pre (datum->syntax stx 'pre))
-           (post (datum->syntax stx 'post))
-           (inv (datum->syntax stx 'inv)))
+     (let ((preSym (datum->syntax stx 'pre))
+           (postSym (datum->syntax stx 'post))
+           (invSym (datum->syntax stx 'inv)))
        (define (check expr)
          (lambda () 
            (when (not expr)
              (error "error..."))))
-       (define-syntax pre
-         (syntax-rules (pre)
-           ((pre cond)
-            (check cond))))
-       (define-syntax post
-         (syntax-rules (post)
-           ((post cond)
-            ; add post conds to a list
-            (display "post conditions")
-            )))
-       (define-syntax inv
-         (syntax-rules (inv)
-           ((inv cond)
-            (check cond)
-            ; add post conds to a list
-            )))
-       #`(body
-          ...)))))
-
-(contract (pre #f) 
-         (post #t) 1)
+       #`((define-syntax #,preSym
+            (syntax-rules ()
+              ((_ cond) ; pattern matching
+               (check cond)))) ; body
+          (define-syntax #,postSym
+            (syntax-rules ()
+              ((_ cond)
+               ; add post conds to a list
+               (display "post conditions")
+               )))
+          (define-syntax #,invSym
+            (syntax-rules ()
+              ((_ cond)
+               (check cond)
+               ; add post conds to a list
+               ))))
+       #`(begin 
+           body
+           ...)))))
+;(contract (pre #t) 1)
+(contract 1)
