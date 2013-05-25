@@ -168,24 +168,25 @@
            (postSym (datum->syntax stx 'post))
            (invSym (datum->syntax stx 'inv)))
        #`(let ((postconds '()))
-           (define-syntax #,preSym
-             (syntax-rules ()
+           (define-syntax (#,preSym c)
+             (syntax-case c ()
                ((_ cond)
-                #`((check #`cond)))))
-           (define-syntax #,postSym
-             (syntax-rules ()
+                #`((check cond)))))
+           (define-syntax (#,postSym c)
+             (syntax-case c ()
                ((_ cond)
                 #`(set! postconds (cons cond postconds)))))
-           (define-syntax #,invSym
-             (syntax-rules ()
+           (define-syntax (#,invSym c)
+             (syntax-case c ()
                ((_ cond)
-                #`(check cond)))))
-       #`(begin 
-           body
-           ...)))))
-(contract (pre #t) (post #t) 1)
+                #`((check cond)))))
+           (begin 
+             body ...
+             (for-each (lambda (c) (check c)) postconds)))))))
+
+;; quelques tests
+(contract (post #f) 1)
+;(contract (pre #f) 1)
+;(contract (pre #f) (post #f) 1)
 (contract 1)
 
-(let ((postcond '()))
-      (set! postcond (cons 2 (cons 1 postcond)))
-  postcond)
