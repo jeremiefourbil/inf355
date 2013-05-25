@@ -157,7 +157,7 @@
 
 ;; Programmation par contrat
 ;; pas encore fonctionnel
-
+;; probleme d'évalutation
 (define-syntax (contract stx)
   (syntax-case stx ()
     ((_ body ...)
@@ -166,30 +166,40 @@
            (invSym (datum->syntax stx 'inv)))
        #`(let ((postconds '()))
            (define (check expr)
-             (lambda () 
-               (when (not expr)
+             (lambda ()
+               (when (not (eval expr))
                  (error "error..."))))
            (define-syntax (#,preSym c)
              (syntax-case c ()
                ((_ cond)
-                #`((check cond)))))
+                #`((check #'cond)))))
            (define-syntax (#,postSym c)
              (syntax-case c ()
                ((_ cond)
-                #`(set! postconds (cons (lambda () ((check cond))) postconds)))))
+                #`(set! postconds (cons (lambda () (check #'cond)) postconds)))))
            (define-syntax (#,invSym c)
              (syntax-case c ()
                ((_ cond)
                 #`(begin
-                    ((check cond))
-                    (set! postconds (cons (lambda () ((check cond))) postconds))))))
+                    ((check #'cond))
+                    (set! postconds (cons (lambda () (check #'cond)) postconds))))))
            (begin0 
              (begin body ...)
-             (for-each (lambda (c) (c)) (reverse postconds))))))))
+             (for-each (lambda (c) ((c))) (reverse postconds))))))))
 
 ;; quelques tests
 (contract (post (printf "post~n")) (pre (printf "pre~n")) (inv (printf "inv~n"))(+ 2 3))
 ;(contract (pre #f) 1)
 ;(contract (pre #f) (post #f) 1)
 
+(define my-check
+  (lambda (expr)
+  (when (not expr)
+    (error "custom error..."))))
 
+(define-syntax (define-data stx)
+  (syntax-case stx ()
+    ((_ name field1 ...)
+     (let ((constructor (datum->syntax stx (string->symbol (string-append "<" "toto" ">")))))
+       #`(begin
+           #,constructor)))))
