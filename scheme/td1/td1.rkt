@@ -156,10 +156,7 @@
 
 
 ;; Programmation par contrat
-(define (check expr)
-  (lambda () 
-    (when (not expr)
-      (error "error..."))))
+;; pas encore fonctionnel
 
 (define-syntax (contract stx)
   (syntax-case stx ()
@@ -168,6 +165,10 @@
            (postSym (datum->syntax stx 'post))
            (invSym (datum->syntax stx 'inv)))
        #`(let ((postconds '()))
+           (define (check expr)
+             (lambda () 
+               (when (not expr)
+                 (error "error..."))))
            (define-syntax (#,preSym c)
              (syntax-case c ()
                ((_ cond)
@@ -175,18 +176,20 @@
            (define-syntax (#,postSym c)
              (syntax-case c ()
                ((_ cond)
-                #`(set! postconds (cons cond postconds)))))
+                #`(set! postconds (cons (lambda () ((check cond))) postconds)))))
            (define-syntax (#,invSym c)
              (syntax-case c ()
                ((_ cond)
-                #`((check cond)))))
-           (begin 
-             body ...
-             (for-each (lambda (c) (check c)) postconds)))))))
+                #`(begin
+                    ((check cond))
+                    (set! postconds (cons (lambda () ((check cond))) postconds))))))
+           (begin0 
+             (begin body ...)
+             (for-each (lambda (c) (c)) (reverse postconds))))))))
 
 ;; quelques tests
-(contract (post #f) 1)
+(contract (post (printf "post~n")) (pre (printf "pre~n")) (inv (printf "inv~n"))(+ 2 3))
 ;(contract (pre #f) 1)
 ;(contract (pre #f) (post #f) 1)
-(contract 1)
+
 
