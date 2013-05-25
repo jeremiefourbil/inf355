@@ -201,5 +201,5 @@
   (syntax-case stx ()
     ((_ name field1 ...)
      (let ((constructor (datum->syntax stx (string->symbol (string-append "<" (symbol->string (syntax->datum #'name)) ">")))))
-       #`(begin
-           #,constructor)))))
+       #`(define #,constructor
+           (lambda () "toto"))))))
