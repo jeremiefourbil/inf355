@@ -156,35 +156,36 @@
 
 
 ;; Programmation par contrat
-;; inv comme macro à l'intérieur de contract
+(define (check expr)
+  (lambda () 
+    (when (not expr)
+      (error "error..."))))
+
 (define-syntax (contract stx)
   (syntax-case stx ()
     ((_ body ...)
      (let ((preSym (datum->syntax stx 'pre))
            (postSym (datum->syntax stx 'post))
            (invSym (datum->syntax stx 'inv)))
-       (define (check expr)
-         (lambda () 
-           (when (not expr)
-             (error "error..."))))
-       #`((define-syntax #,preSym
-            (syntax-rules ()
-              ((_ cond) ; pattern matching
-               (check cond)))) ; body
-          (define-syntax #,postSym
-            (syntax-rules ()
-              ((_ cond)
-               ; add post conds to a list
-               (display "post conditions")
-               )))
-          (define-syntax #,invSym
-            (syntax-rules ()
-              ((_ cond)
-               (check cond)
-               ; add post conds to a list
-               ))))
+       #`(let ((postconds '()))
+           (define-syntax #,preSym
+             (syntax-rules ()
+               ((_ cond)
+                #`((check #`cond)))))
+           (define-syntax #,postSym
+             (syntax-rules ()
+               ((_ cond)
+                #`(set! postconds (cons cond postconds)))))
+           (define-syntax #,invSym
+             (syntax-rules ()
+               ((_ cond)
+                #`(check cond)))))
        #`(begin 
            body
            ...)))))
-;(contract (pre #t) 1)
+(contract (pre #t) (post #t) 1)
 (contract 1)
+
+(let ((postcond '()))
+      (set! postcond (cons 2 (cons 1 postcond)))
+  postcond)
