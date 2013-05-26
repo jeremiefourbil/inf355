@@ -1,42 +1,52 @@
 #lang racket
 
-;;;; Mise en place
+;;;;;;;;;;;;;;;;;;;
+;; mise en place ;;
+;;;;;;;;;;;;;;;;;;;
 
-(define (test cond result)
-  (if (equal? cond result)
-      (void)
-      (error "Bad test result")))
+(define test
+  (lambda (cond res)
+    (if (equal? cond res)
+        (void)
+        (error "Bad test result"))))
 
-;;;; Échauffement
+;;;;;;;;;;;;;;;;;;
+;; échauffement ;;
+;;;;;;;;;;;;;;;;;;
 
-(define (next-odd n)
-  (if (equal? 0 (modulo n 2))
-      (+ n 1)
-      (+ n 2)))
+(define next-odd
+  (lambda (n)
+    (if (equal? 0 (modulo n 2))
+        (+ n 1)
+        (+ n 2))))
 
-(define (prime? n)
-  (cond 
-    ((<= n 1) #f)
-    ((<= n 3) #t)
-    ((equal? 0 (modulo n 2)) #f)
-    (else (let loop ((i 3)
-                     (s (sqrt n)))
-            (cond
-              ((> i s) #t)
-              ((equal? 0 (modulo n i)) #f)
-              (else (loop (+ i 2) s)))))
-    ))
+(define prime?
+  (lambda (n)
+    (cond 
+      ((<= n 1) #f)
+      ((<= n 3) #t)
+      ((equal? 0 (modulo n 2)) #f)
+      (else (let loop ((i 3)
+                       (s (sqrt n)))
+              (cond
+                ((> i s) #t)
+                ((equal? 0 (modulo n i)) #f)
+                (else (loop (+ i 2) s)))))
+      )))
 
-(define (map-interval f min max)
-  (let loop ((min min))
-    (if (> min max)
-        '()
-        (cons (f min) (loop (+ min 1))))
-    ))
+(define map-interval
+  (lambda (f min max)
+    (let loop ((min min))
+      (if (> min max)
+          '()
+          (cons (f min) (loop (+ min 1))))
+      )))
 
 (define iota range)
 
-;;;; Tests Échauffement
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; tests : échauffement ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (test (+ 1 2) 3)
 (test (next-odd 1) 3)
@@ -53,36 +63,43 @@
 (test (iota 0) '())
 (test (iota -1) '())
 
-;;;; Manipulation de données
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; MANIPULATION DE DONNEES ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (revsymb symb)
-  (string->symbol (list->string (reverse (string->list (symbol->string symb))))))
+(define revsymb
+  (lambda (symb)
+    (string->symbol (list->string (reverse (string->list (symbol->string symb)))))))
 
-(define (trans l)
-  (map (lambda (x) (revsymb x)) l))
+(define trans
+  (lambda (x) (map revsymb x)))
 
-(define (display-all l)
-  (for-each (lambda (x) (display x) (newline)) l))
+(define display-all
+  (lambda (l)
+    (for-each (lambda (x) (display x) (newline)) l)))
 
-(define (filter test l)
-  (if (empty? l)
-      '()
-      (let ((filtered (filter test (cdr l))))
-        (if (test (car l)) 
-            (cons (car l) filtered) 
-            filtered))))
+(define filter
+  (lambda (test l)
+    (if (empty? l)
+        '()
+        (let ((filtered (filter test (cdr l))))
+          (if (test (car l)) 
+              (cons (car l) filtered) 
+              filtered)))))
 
-(define (slash operator l)
-  (if (> 2 (length l))
-      l ;We should define the return of the binairy operator with less than 2 elements (or throw an error)
-      (let loop ((res (operator (car l) (car (cdr l))))
-                 (list (cdr l)))
-        (if (empty? (cdr list)) ;There's no element left
-            res
-            (loop (operator res (car (cdr list))) (cdr list))))
-      ))
-
-;;;; Test Manipulation de données
+(define slash
+  (lambda (operator l)
+    (if (> 2 (length l))
+        l
+        (let loop ((res (operator (car l) (car (cdr l))))
+                   (list (cdr l)))
+          (if (empty? (cdr list))
+              res
+              (loop (operator res (car (cdr list))) (cdr list))))
+        )))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; tests : manipulation de données ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (test (revsymb 'foobar) 'raboof)
 (test (trans '(foo bar)) '(oof rab))
@@ -94,7 +111,14 @@
 (test (slash expt '(2 3 4)) 4096)
 (test (slash * (filter prime? (iota 100))) 2305567963945518424753102147331756070)
 
-;;;; Transformation de code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TRANSFORMATION DE CODE ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;
+;; mise en jambe ;;
+;;;;;;;;;;;;;;;;;;;
 
 (define-syntax or
   (syntax-rules ()
@@ -124,7 +148,9 @@
          (begin body ... (loop)))
        ))))
 
-;;;; Test mise en jambe
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; tests : mise en jambe ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (test (let ((i 0) (c 0)) (while (< i 5) (set! c (+ c i)) (set! i (+ i 1))) c) 10)
 (test
@@ -133,31 +159,31 @@
  4)
 (test (and 1 2 3) 3)
 
+;;;;;;;;;;;
+;; trace ;;
+;;;;;;;;;;;
+
 (define-syntax define-trace
   (syntax-rules ()
     ((define-trace (f . args) body ...)
      (define (f . args)
-       (begin (display f) (newline) (begin0 body ... (flush-output) (newline)))
-       ; I think that it's not possible to print another time after after returning the value of body
+       (begin
+         (display f)
+         (newline)
+         (begin0
+           body ... 
+           (flush-output) 
+           (newline)))
        )
      )))
 
-;; With this tracing, we can have the trace at the end of the procedure, but the procedure won't return the value we expected
-(define-syntax define-trace2
-  (syntax-rules ()
-    ((define-trace2 (f . args) body ...)
-     (define (f . args)
-       (let ((result body ...))
-         (display f) (newline)
-         (display result)
-         (newline) (display f))
-       )
-     )))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; programmation par contrat ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; pas encore fonctionnel
+; probleme d'évalutation
 
-;; Programmation par contrat
-;; pas encore fonctionnel
-;; probleme d'évalutation
 (define-syntax (contract stx)
   (syntax-case stx ()
     ((_ body ...)
@@ -189,17 +215,29 @@
 
 ;; quelques tests
 (contract (post (printf "post~n")) (pre (printf "pre~n")) (inv (printf "inv~n"))(+ 2 3))
-;(contract (pre #f) 1)
-;(contract (pre #f) (post #f) 1)
+(contract (pre (printf "pre~n")) (post (printf "post~n")) 1)
 
-(define my-check
-  (lambda (expr)
-  (when (not expr)
-    (error "custom error..."))))
-
+;; pour une liste de champs je definis les getters et setters
+;; on commence en mettant les champs null par défault
 (define-syntax (define-data stx)
   (syntax-case stx ()
     ((_ name field1 ...)
      (let ((constructor (datum->syntax stx (string->symbol (string-append "<" (symbol->string (syntax->datum #'name)) ">")))))
        #`(define #,constructor
-           (lambda () "toto"))))))
+           (lambda () "foo"))))))
+
+(define-data joueur age)
+(<joueur>)
+
+;; fonction qui doit être mappée à l'ensemble des champs
+(define mapper
+  (lambda (field)
+    (let ((get (datum->syntax field (string->symbol (string-append (symbol->string (syntax->datum #'field)) ">>"))))
+          (set (datum->syntax field (string->symbol (string-append ">>" (symbol->string (syntax->datum #'field))))))
+          (value null))
+      #`(begin
+          (define-syntax #,get
+            (syntax-rules () (( _ ) #,value)))
+          (define-syntax #,set
+            (syntax-rules () (( _ v ) (set! #,value v))))))))
+;(mapper toto)
