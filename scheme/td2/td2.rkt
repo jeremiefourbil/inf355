@@ -71,7 +71,7 @@
                 (if (equal? c column) (amb) (void))
                 (if (equal? r row) (amb) (void))
                 (if (or (equal? (+ r c) (+ row column)) (equal? (- r c) (- row column))) (amb) (void))))
-              placed))
+            placed))
 
 (define (queens)
   (let loop ((placed '())
@@ -89,3 +89,57 @@
 ;;;;;;;;;;;;;;;;
 ;; Coroutines ;;
 ;;;;;;;;;;;;;;;;
+
+(define schedule #f)
+
+(define *queue* '())
+
+
+(define (scheduler)
+  (let ((cont (let/cc k
+                (set! schedule k)
+                #f)))
+    (when cont
+      (set! *queue* (append *queue* (list cont))))
+    (when (not (empty? *queue*))
+      (let ((next-thread (car *queue*)))
+        (set! *queue* (cdr *queue*))
+        (next-thread)))))
+
+(define (yield)
+  (call/cc schedule))
+
+(define (start-thread f . args)
+  (set! *queue*
+        (cons (lambda ()
+                (apply f args)
+                (schedule #f))
+              *queue*)))
+;;;;;;;;;;
+
+(define (displaynl m)
+  (display m)
+  (newline))
+
+(define (thread n)
+  (displaynl (list "Starting thread" n))
+  (yield)
+  (displaynl (list "In thread" n))
+  (yield)
+  (displaynl (list "Ending thread" n)))
+
+(define (thread2)
+  (displaynl "Starting thread2")
+  (yield)
+  (displaynl "In thread2")
+  (yield)
+  (displaynl "Creating thread 4 while scheduler is already running")
+  (start-thread thread 4)
+  (yield)
+  (displaynl "Ending thread2"))
+
+;; tests
+(start-thread thread 1)
+(start-thread thread2)
+(start-thread thread 3)
+(scheduler)
