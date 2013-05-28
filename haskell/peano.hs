@@ -1,5 +1,7 @@
 module Peano where
 
+import Test.QuickCheck
+
 data Peano = Zero | Succ Peano deriving (Read, Eq, Ord)
 
 instance Num Peano where
@@ -56,3 +58,7 @@ instance Real Peano where
   toRational Zero = 0
   toRational (Succ a) = 1 + (toRational a)
 
+instance Arbitrary Peano where
+  arbitrary = do
+    randomnumber <- choose (0, 100)
+    return $ fromInteger(randomnumber)

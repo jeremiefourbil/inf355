@@ -6,9 +6,11 @@
 module RPN where 
 
 import System.IO
+import Peano
 
 -- définition du type Stack
-type Stack = [Integer]
+--type Stack = [Integer]
+type Stack = [Peano]
 
 -- défintion du type Operator
 type Operator = Stack -> Stack
@@ -23,9 +25,12 @@ parseOp "/"     = (\stack -> [(div) (stack !! 1) (stack !! 0)] ++ (drop 2 stack)
 parseOp "dup"   = (\stack -> [stack !! 0] ++ stack)
 parseOp "swap"  = (\stack -> [(stack !! 1), (stack !! 0)] ++ (drop 2 stack))
 parseOp "drop"  = (\stack -> tail stack)
-parseOp "depth" = (\stack -> [toInteger (length stack)] ++ stack)
-parseOp "pick"  = (\stack -> [stack !! (fromInteger ((stack !! 0)+1))] ++ (drop 1 stack))
-parseOp x       = (\stack -> [((read x) :: Integer)] ++ stack)
+-- parseOp "depth" = (\stack -> [toInteger (length stack)] ++ stack)
+parseOp "depth" = (\stack -> [fromInteger (toInteger (length stack))] ++ stack)
+--parseOp "pick"  = (\stack -> [stack !! (fromInteger ((stack !! 0)+1))] ++ (drop 1 stack))
+parseOp "pick"  = (\stack -> [stack !! (toEnum (fromInteger ((toInteger ((stack !! 0)))+1)))] ++ (drop 1 stack))
+--parseOp x       = (\stack -> [((read x) :: Integer)] ++ stack)
+parseOp x       = (\stack -> [((read x) :: Peano)] ++ stack)
 
 
 -- fonction d'évaluation des opérateurs sur la pile
