@@ -3,11 +3,12 @@
 -- CALCULATRICE RPN
 --
 --
+module RPN where 
 
 import System.IO
 
 -- définition du type Stack
-type Stack = [Int]
+type Stack = [Integer]
 
 -- défintion du type Operator
 type Operator = Stack -> Stack
@@ -16,15 +17,15 @@ type Operator = Stack -> Stack
 
 parseOp :: String -> Operator
 parseOp "+"     = (\stack -> [(+) (stack !! 0) (stack !! 1)] ++ (drop 2 stack))
-parseOp "-"     = (\stack -> [(-) (stack !! 0) (stack !! 1)] ++ (drop 2 stack))
+parseOp "-"     = (\stack -> [(-) (stack !! 1) (stack !! 0)] ++ (drop 2 stack))
 parseOp "*"     = (\stack -> [(*) (stack !! 0) (stack !! 1)] ++ (drop 2 stack))
-parseOp "/"     = (\stack -> [(div) (stack !! 0) (stack !! 1)] ++ (drop 2 stack))
+parseOp "/"     = (\stack -> [(div) (stack !! 1) (stack !! 0)] ++ (drop 2 stack))
 parseOp "dup"   = (\stack -> [stack !! 0] ++ stack)
 parseOp "swap"  = (\stack -> [(stack !! 1), (stack !! 0)] ++ (drop 2 stack))
 parseOp "drop"  = (\stack -> tail stack)
-parseOp "depth" = (\stack -> [length stack] ++ stack)
-parseOp "pick"  = (\stack -> [stack !! ((stack !! 0)+1)] ++ stack)
-parseOp x       = (\stack -> [((read x) :: Int)] ++ stack)
+parseOp "depth" = (\stack -> [toInteger (length stack)] ++ stack)
+parseOp "pick"  = (\stack -> [stack !! (fromInteger ((stack !! 0)+1))] ++ (drop 1 stack))
+parseOp x       = (\stack -> [((read x) :: Integer)] ++ stack)
 
 
 -- fonction d'évaluation des opérateurs sur la pile
@@ -47,4 +48,4 @@ repl stack = do
   newstack <- return $ eval stack (parse line)
   putStrLn $ show $ reverse newstack
   repl newstack
-main = repl []
+--main = repl []
