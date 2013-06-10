@@ -13,7 +13,8 @@ import Peano
 type Stack = [Peano]
 
 -- défintion du type Operator
-type Operator = Stack -> Stack
+--type Operator = Stack -> Stack
+type Operator = State [s] ()
 
 -- définition de parseOp
 
@@ -54,3 +55,23 @@ repl stack = do
   putStrLn $ show $ reverse newstack
   repl newstack
 --main = repl []
+
+
+drop :: Operator s
+drop = modify tail
+
+push :: s -> State [s] ()
+push x = modify (x :)
+
+pop :: Operator s
+pop = do
+  (x : xs ) <- get
+  put xs
+  return x
+
+--dup :: State [s] s
+dup :: Operator s
+dup = do
+  top <- pop
+  push top
+  push top
