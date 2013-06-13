@@ -1,4 +1,4 @@
-import fr.enst.plnc2013
+package fr.enst.plnc2013
 
 abstract class List[+A] {
   def ::[B >: A](elem: B) = Cons(elem, this)
